@@ -1,0 +1,45 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+env:
+  IMAGE_NAME: iptv2m3u
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag $IMAGE_NAME
+    - name: Log into registry
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USER }} --password-stdin
+    - name: Push image
+      run: |
+          # 拼接镜像 id，这个镜像 id 就是在使用 docker 镜像时 pull 后面的名字。
+          IMAGE_ID=${{ secrets.DOCKER_USER }}/$IMAGE_NAME
+
+          # 将所有的大写字母转为小写
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          # 从 GitHub.ref 中取出版本
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          echo $VERSION
+          echo ${{ github.ref }}
+
+          # 从 tag 名字中替换 v 字符
+          # [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+
+          # Use Docker `latest` tag convention
+          [ "$VERSION" == "master" ] && VERSION=latest
+          [ "$VERSION" == "main" ] && VERSION=latest
+
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=latest
+          # 设置镜像 id 和版本号
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          # 进行 push
+          docker push $IMAGE_ID:$VERSION
