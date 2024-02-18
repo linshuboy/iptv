@@ -75,10 +75,6 @@ s.connect((os.getenv('SWITCH_IP'), 8080))
 s.send(bytes.fromhex('A00101A2'))
 # 等待一段时间 暂定 30S
 time.sleep(30)
-# 通过一些手段关闭机顶盒
-# 发送数据: 16进制
-s.send(bytes.fromhex('A00100A1'))
-s.close()
 # 停止抓包
 # {"func_name":"tcpdump","action":"stop","param":{}}
 r = requests.post(url + call_action,
@@ -135,102 +131,107 @@ os.remove(temp_file.name)
 # 判断 ChannelIDs 的长度是否等于0 表示没有找到
 if len(ChannelIDs) == 0:
     print('未找到ChannelIDs')
-    exit(0)
-# 输出并写入文件
-m3u_file = open('tv.m3u', 'w', encoding='utf-8')
-m3u_file.write('#EXTM3U\n')
-print(ChannelIDs,1)
-# 高清两个字在ChannelNames[i]中
-CustomChannelOrder = [
-    'CCTV1高清',
-    'CCTV2高清',
-    'CCTV3高清',
-    'CCTV4高清',
-    'CCTV5高清',
-    'CCTV6高清',
-    'CCTV7高清',
-    'CCTV8高清',
-    'CCTV9高清',
-    'CCTV10高清',
-    'CCTV11高清',
-    'CCTV12高清',
-    'CCTV13高清',
-    'CCTV15高清',
-    'CCTV17农业高清',
-    'CCTV少儿高清'
-]
-for name in CustomChannelOrder:
-    for i in range(len(ChannelIDs)):
-        if ChannelNames[i] == name:
-            m3u_file.write('#EXTINF:-1,' + ChannelNames[i] + '\n')
-            m3u_file.write(os.getenv('UDP_URL') + ChannelURLs[i][7:] + '/\n')
-for i in range(len(ChannelIDs)):
-    if ChannelNames[i] in CustomChannelOrder:
-        continue
-    if '高清' not in ChannelNames[i]:
-        continue
-    m3u_file.write('#EXTINF:-1,' + ChannelNames[i] + '\n')
-    m3u_file.write(os.getenv('UDP_URL') + ChannelURLs[i][7:] + '/\n')
-for i in range(len(ChannelIDs)):
-    if ChannelNames[i] in CustomChannelOrder:
-        continue
-    if '高清' in ChannelNames[i]:
-        continue
-    m3u_file.write('#EXTINF:-1,' + ChannelNames[i] + '\n')
-    m3u_file.write(os.getenv('UDP_URL') + ChannelURLs[i][7:] + '/\n')
-m3u_file.close()
-# 获取TimeShiftURLs里面的ip地址放到分组里面
-ips = []
-for i in range(len(ChannelIDs)):
-    TimeShiftURL = TimeShiftURLs[i]
-    print(ChannelNames[i] + ':' + TimeShiftURL)
-    ipss = re.findall(r'rtsp://([^:]*):', TimeShiftURL)
-    if len(ipss) == 0:
-        continue
-    ip = ipss[0]
-    print(ip)
-    if ip not in ips:
-        ips.append(ip)
-print(ips,2)
-# 获取iptv_rtsp分组信息
-# {"func_name":"ipgroup","action":"show","param":{"TYPE":"total,data","limit":"0,20","ORDER_BY":"","ORDER":""}}
-r = requests.post(url + call_action,
-                  json={"func_name": "ipgroup", "action": "show",
-                        "param": {"TYPE": "total,data", "limit": "0,20", "ORDER_BY": "", "ORDER": ""}},
-                  cookies={'sess_key': cookie})
-print(r.json())
-
-ip_groups = r.json().get('Data').get('data')
-iptv_rtsp_group = None
-for ipgroup in ip_groups:
-    if ipgroup['group_name'] == 'iptv_rtsp':
-        iptv_rtsp_group = ipgroup
-        break
-if iptv_rtsp_group is None:
-    ip_str = ','.join(ips)
-    # 添加分组 {"func_name":"ipgroup","action":"add","param":{"group_name":"iptv_rtsp","addr_pool":"8.8.8.8","type":0,"newRow":true,"comment":""}}
-    r = requests.post(url + call_action,
-                      json={"func_name": "ipgroup", "action": "add",
-                            "param": {"group_name": "iptv_rtsp", "addr_pool": ip_str, "type": 0,
-                                      "comment": ""}},
-                      cookies={'sess_key': cookie})
-    print(r.json())
 else:
-    old_ips = iptv_rtsp_group['addr_pool'].split(',')
-    # 将ips中的ip添加到old_ips中
-    for ip in ips:
-        if ip in old_ips:
-            old_ips.remove(ip)
-        old_ips.append(ip)
-    # 如果old_ips中的ip数量大于5，删除最早的ip
-    if len(old_ips) > 5:
-        old_ips = old_ips[len(old_ips) - 5:]
-    ip_str = ','.join(old_ips)
-    # 更新 {"func_name":"ipgroup","action":"edit","param":{"id":1,"group_name":"iptv_rtsp","addr_pool":"8.8.8.7","type":0,"comment":""}}
+    # 输出并写入文件
+    m3u_file = open('tv.m3u', 'w', encoding='utf-8')
+    m3u_file.write('#EXTM3U\n')
+    print(ChannelIDs,1)
+    # 高清两个字在ChannelNames[i]中
+    CustomChannelOrder = [
+        'CCTV1高清',
+        'CCTV2高清',
+        'CCTV3高清',
+        'CCTV4高清',
+        'CCTV5高清',
+        'CCTV6高清',
+        'CCTV7高清',
+        'CCTV8高清',
+        'CCTV9高清',
+        'CCTV10高清',
+        'CCTV11高清',
+        'CCTV12高清',
+        'CCTV13高清',
+        'CCTV15高清',
+        'CCTV17农业高清',
+        'CCTV少儿高清'
+    ]
+    for name in CustomChannelOrder:
+        for i in range(len(ChannelIDs)):
+            if ChannelNames[i] == name:
+                m3u_file.write('#EXTINF:-1,' + ChannelNames[i] + '\n')
+                m3u_file.write(os.getenv('UDP_URL') + ChannelURLs[i][7:] + '/\n')
+    for i in range(len(ChannelIDs)):
+        if ChannelNames[i] in CustomChannelOrder:
+            continue
+        if '高清' not in ChannelNames[i]:
+            continue
+        m3u_file.write('#EXTINF:-1,' + ChannelNames[i] + '\n')
+        m3u_file.write(os.getenv('UDP_URL') + ChannelURLs[i][7:] + '/\n')
+    for i in range(len(ChannelIDs)):
+        if ChannelNames[i] in CustomChannelOrder:
+            continue
+        if '高清' in ChannelNames[i]:
+            continue
+        m3u_file.write('#EXTINF:-1,' + ChannelNames[i] + '\n')
+        m3u_file.write(os.getenv('UDP_URL') + ChannelURLs[i][7:] + '/\n')
+    m3u_file.close()
+    # 获取TimeShiftURLs里面的ip地址放到分组里面
+    ips = []
+    for i in range(len(ChannelIDs)):
+        TimeShiftURL = TimeShiftURLs[i]
+        print(ChannelNames[i] + ':' + TimeShiftURL)
+        ipss = re.findall(r'rtsp://([^:]*):', TimeShiftURL)
+        if len(ipss) == 0:
+            continue
+        ip = ipss[0]
+        print(ip)
+        if ip not in ips:
+            ips.append(ip)
+    print(ips,2)
+    # 获取iptv_rtsp分组信息
+    # {"func_name":"ipgroup","action":"show","param":{"TYPE":"total,data","limit":"0,20","ORDER_BY":"","ORDER":""}}
     r = requests.post(url + call_action,
-                      json={"func_name": "ipgroup", "action": "edit",
-                            "param": {"id": iptv_rtsp_group['id'], "group_name": "iptv_rtsp",
-                                      "addr_pool": ip_str,
-                                      "type": 0, "comment": ""}},
+                      json={"func_name": "ipgroup", "action": "show",
+                            "param": {"TYPE": "total,data", "limit": "0,20", "ORDER_BY": "", "ORDER": ""}},
                       cookies={'sess_key': cookie})
     print(r.json())
+
+    ip_groups = r.json().get('Data').get('data')
+    iptv_rtsp_group = None
+    for ipgroup in ip_groups:
+        if ipgroup['group_name'] == 'iptv_rtsp':
+            iptv_rtsp_group = ipgroup
+            break
+    if iptv_rtsp_group is None:
+        ip_str = ','.join(ips)
+        # 添加分组 {"func_name":"ipgroup","action":"add","param":{"group_name":"iptv_rtsp","addr_pool":"8.8.8.8","type":0,"newRow":true,"comment":""}}
+        r = requests.post(url + call_action,
+                          json={"func_name": "ipgroup", "action": "add",
+                                "param": {"group_name": "iptv_rtsp", "addr_pool": ip_str, "type": 0,
+                                          "comment": ""}},
+                          cookies={'sess_key': cookie})
+        print(r.json())
+    else:
+        old_ips = iptv_rtsp_group['addr_pool'].split(',')
+        # 将ips中的ip添加到old_ips中
+        for ip in ips:
+            if ip in old_ips:
+                old_ips.remove(ip)
+            old_ips.append(ip)
+        # 如果old_ips中的ip数量大于5，删除最早的ip
+        if len(old_ips) > 5:
+            old_ips = old_ips[len(old_ips) - 5:]
+        ip_str = ','.join(old_ips)
+        # 更新 {"func_name":"ipgroup","action":"edit","param":{"id":1,"group_name":"iptv_rtsp","addr_pool":"8.8.8.7","type":0,"comment":""}}
+        r = requests.post(url + call_action,
+                          json={"func_name": "ipgroup", "action": "edit",
+                                "param": {"id": iptv_rtsp_group['id'], "group_name": "iptv_rtsp",
+                                          "addr_pool": ip_str,
+                                          "type": 0, "comment": ""}},
+                          cookies={'sess_key': cookie})
+        print(r.json())
+time.sleep(300)
+# 通过一些手段关闭机顶盒
+# 发送数据: 16进制
+s.send(bytes.fromhex('A00100A1'))
+s.close()
