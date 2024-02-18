@@ -132,6 +132,10 @@ ChannelURLs = re.findall(r'[,\']ChannelURL="([^"]*)"', channel_info)
 TimeShiftURLs = re.findall(r'[,\']TimeShiftURL="([^"]*)"', channel_info)
 # 删除临时文件
 os.remove(temp_file.name)
+# 判断 ChannelIDs 的长度是否等于0 表示没有找到
+if len(ChannelIDs) == 0:
+    print('未找到ChannelIDs')
+    exit(0)
 # 输出并写入文件
 m3u_file = open('tv.m3u', 'w', encoding='utf-8')
 m3u_file.write('#EXTM3U\n')
