@@ -230,7 +230,8 @@ else:
                                           "type": 0, "comment": ""}},
                           cookies={'sess_key': cookie})
         print(r.json())
-time.sleep(300)
+time.sleep((os.getenv('SLEEP_TIME', '300')))
+print('关闭机顶盒')
 # 通过一些手段关闭机顶盒
 # 发送数据: 16进制
 s.send(bytes.fromhex('A00100A1'))
