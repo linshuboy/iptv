@@ -72,6 +72,8 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # 使用代理 127.0.0.1 1080
 s.connect((os.getenv('SWITCH_IP'), 8080))
 # 发送数据: 16进制
+s.send(bytes.fromhex('A00100A1'))
+time.sleep(5)
 s.send(bytes.fromhex('A00101A2'))
 # 等待一段时间 暂定 30S
 time.sleep(30)
